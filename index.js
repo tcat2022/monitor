@@ -1,70 +1,101 @@
  const canvas = document.querySelector('canvas');
  let c = canvas.getContext("2d")
-
  canvas.width = 1024
  canvas.height = 576
-
+ const sound = "map1.mp3"
+ const music = new Audio()
+ music.src = sound
  const collisionsMap = []
  for (let i = 0; i < collisions.length; i+= 70) {
 collisionsMap.push(collisions.slice(i, 70 + i))
  }
 
- class Boundray {
-    static width = 48
-    static height = 48
-    constructor({position}) {
-        this.position = position
-        this.width = 48
-        this.height = 48
-    }
-    draw() {
-        c.fillStyle = "red"
-        c.fillRect(this.position.x,this.position.y,this.width,this.height)
-    }
+ const portalMap = []
+ for (let i = 0; i < portal1.length; i+= 70) {
+portalMap.push(portal1.slice(i, 70 + i))
  }
+ console.log(portalMap)
 
  const boundaries = []
  const offset = {
-    x:offset.x,
-    y:offset.y
+    x: -1650,
+    y: -330
 } 
 
  collisionsMap.forEach((row, i) => {
     row.forEach((symbol, j) => {
         if(symbol === 1025)
         boundaries.push(new Boundray({position:{
-           x: j * Boundray.width ,
-           y: i * Boundray.height
+           x: j * Boundray.width + offset.x,
+           y: i * Boundray.height + offset.y
         }}))
     })
  })
-console.log(boundaries)
+
+const portal = []
+
+portalMap.forEach((row, i) => {
+    row.forEach((symbol, j) => {
+        if(symbol === 1025)
+        portal.push(new Boundray({position:{
+           x: j * Boundray.width + offset.x,
+           y: i * Boundray.height + offset.y
+        }}))
+    })
+ })
+
+console.log(portal)
 
 const image = new Image()
 image.src = './img/rmap.png'
 
-const playerImage = new Image()
-playerImage.src = './img/playerDown.png'
+const foregroundimage = new Image()
+foregroundimage.src = './img/foreground.png'
 
-class Sprite {
-    constructor({position,velocity,image}) {
-     this.position = position
-     this.image = image
+const playerDownImage = new Image()
+playerDownImage.src = './img/playerDown.png'
+
+const playerUpImage = new Image()
+playerUpImage.src = './img/playerUp.png'
+
+const playerLeftImage = new Image()
+playerLeftImage.src = './img/playerLeft.png'
+
+const playerRightImage = new Image()
+playerRightImage.src = './img/playerRight.png'
+
+
+const player = new Sprite({
+    position:{
+       x:canvas.width / 2 - 192 / 4 / 2,
+       y:canvas.height / 2 - 68 / 4, 
+    },
+    image: playerDownImage,
+    frames: {
+        max: 4
+    },
+    sprites: {
+        up: playerUpImage,
+        left: playerLeftImage,
+        right: playerRightImage,
+        down: playerDownImage,
     }
-
-draw() {
-    c.drawImage(this.image,this.position.x,this.position.y)
-    }
-}
-
-
+})
 
 const background = new Sprite({
     position: {
-        x: -2000,
-        y: -770
+        x: offset.x,
+        y: offset.y
     },
     image: image
+})
+
+const foreground = new Sprite({
+    position: {
+        x: offset.x,
+        y: offset.y
+    },
+    image: foregroundimage
 })
 const keys = {
     w: {
@@ -80,31 +111,129 @@ const keys = {
         pressed:false
     },
 }
+
+const movables = [background, ...boundaries,foreground,...portal]
+function recCollision({rectangle1,rectangle2}) {
+    return (
+        rectangle1.position.x + rectangle1.width >= rectangle2.position.x &&
+        rectangle1.position.x <= rectangle2.position.x + rectangle2.width &&
+        rectangle1.position.y <= rectangle2.position.y + rectangle2.height &&
+        rectangle1.position.y + rectangle1.height >= rectangle2.position.y
+        )
+}
+
+
 function animate() {
 window.requestAnimationFrame(animate)
+music.play()
 background.draw()
-boundaries.forEach(boundary => {
+boundaries.forEach((boundary) => {
     boundary.draw()
 })
-c.drawImage(
-playerImage ,
-0,
-0,
-playerImage.width / 4,
-playerImage.height,
-canvas.width / 2 - playerImage.width / 4 / 2
-,canvas.height / 2 - playerImage.height / 4,
-playerImage.width / 4,
-playerImage.height,
-)
+portal.forEach(portal => {
+    portal.draw()
+})
+player.draw()
+foreground.draw()
 
-if (keys.w.pressed && lastKey === 'w') background.position.y += 3 
-else if(keys.a.pressed && lastKey === 'a')background.position.x += 3
-else if(keys.d.pressed && lastKey === 'd')background.position.x -= 3  
-else if(keys.s.pressed && lastKey === 's')background.position.y -= 3    
+let moving = true
+player.moving = false
+if (keys.w.pressed && lastKey === 'w') {
+    player.moving = true
+    player.image = player.sprites.up
+for (let i = 0; i < boundaries.length; i++){
+    const boundary = boundaries[i]
+    if(
+        recCollision({
+            rectangle1: player,
+            rectangle2: {...boundary, position: {
+               x:boundary.position.x ,
+               y:boundary.position.y + 3
+            }}
+        })
+    ){
+        moving = false
+    break
+        }
+}
+
+for (let i = 0; i < portal.length; i++){
+    const portals = portal[i]
+    if(
+        recCollision({
+            rectangle1: player,
+            rectangle2: portals
+        })
+    ){
+        document.location.href = "house.html"
+        break
+        }
+}
+if(moving)
+    movables.forEach(movable => {movable.position.y += 3})}
+else if(keys.a.pressed && lastKey === 'a') {
+    player.moving = true
+    player.image = player.sprites.left
+    for (let i = 0; i < boundaries.length; i++){
+        const boundary = boundaries[i]
+        if(
+            recCollision({
+                rectangle1: player,
+                rectangle2: {...boundary, position: {
+                   x:boundary.position.x + 3,
+                   y:boundary.position.y 
+                }}
+            })
+        ){
+            moving = false
+        break
+            }
+    }
+    if(moving)
+    movables.forEach(movable => {movable.position.x += 3})}
+else if(keys.d.pressed && lastKey === 'd') {
+    player.moving = true
+    player.image = player.sprites.right
+    for (let i = 0; i < boundaries.length; i++){
+        const boundary = boundaries[i]
+        if(
+            recCollision({
+                rectangle1: player,
+                rectangle2: {...boundary, position: {
+                   x:boundary.position.x - 3,
+                   y:boundary.position.y 
+                }}
+            })
+        ){
+            moving = false
+        break
+            }
+    }
+    if(moving)
+    movables.forEach(movable => {movable.position.x -= 3})}
+else if(keys.s.pressed && lastKey === 's') {
+    music.play()
+    player.moving = true
+    player.image = player.sprites.down
+    for (let i = 0; i < boundaries.length; i++){
+        const boundary = boundaries[i]
+        if(
+            recCollision({
+                rectangle1: player,
+                rectangle2: {...boundary, position: {
+                   x:boundary.position.x,
+                   y:boundary.position.y - 3
+                }}
+            })
+        ){
+            moving = false
+        break
+            }
+    }
+    if(moving)
+    movables.forEach(movable => {movable.position.y -= 3})}   
 }
 animate()
-
 let lastKey = ''
 window.addEventListener('keydown', (e) => {
 switch(e.key){
