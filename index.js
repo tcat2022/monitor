@@ -47,7 +47,7 @@ portalMap.forEach((row, i) => {
 console.log(portal)
 
 const image = new Image()
-image.src = './img/rmap.png'
+image.src = './img/map.png'
 
 const foregroundimage = new Image()
 foregroundimage.src = './img/foreground.png'
